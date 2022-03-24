@@ -1,0 +1,522 @@
+Sub Button1_Click()
+
+    'Grab the current Month and Day
+    'IE: February 10th = 210
+    
+    Dim DDate As Date
+    Dim MonthNum As Integer
+    Dim MonthDay As Integer
+    
+    
+    
+    DDate = Date
+    MonthNum = Month(DDate)
+    MonthDay = Day(DDate)
+    
+    Sheets.Add(After:=Sheets("Control")).Name = "DM" & MonthNum & MonthDay
+    Sheets.Add(After:=Sheets("Control")).Name = "Host" & MonthNum & MonthDay
+    Sheets.Add(After:=Sheets("Control")).Name = "Awards" & MonthNum & MonthDay
+    Sheets.Add(After:=Sheets("Control")).Name = "New" & MonthNum & MonthDay
+    
+    Worksheets("New").Range("A1").CurrentRegion.Copy
+    Worksheets("New" & MonthNum & MonthDay).Range("A1").PasteSpecial
+    Worksheets("New").ListObjects("tbl_New").Delete
+    Worksheets("New" & MonthNum & MonthDay).Visible = False
+    
+    Worksheets("Awards").Range("A1").CurrentRegion.Copy
+    Worksheets("Awards" & MonthNum & MonthDay).Range("A1").PasteSpecial
+    Worksheets("Awards").ListObjects("tbl_Awards").Delete
+    Worksheets("Awards" & MonthNum & MonthDay).Visible = False
+    
+    Worksheets("Host").Range("A1").CurrentRegion.Copy
+    Worksheets("Host" & MonthNum & MonthDay).Range("A1").PasteSpecial
+    Worksheets("Host").ListObjects("tbl_Host").Delete
+    Worksheets("Host" & MonthNum & MonthDay).Visible = False
+    
+    Worksheets("DM").Range("A1").CurrentRegion.Copy
+    Worksheets("DM" & MonthNum & MonthDay).Range("A1").PasteSpecial
+    Worksheets("DM").ListObjects("tbl_DM").Delete
+    Worksheets("DM" & MonthNum & MonthDay).Visible = False
+    
+
+    
+End Sub
+Sub Button2_Click()
+    
+    'Select New Member Sheet and Convert SetupDtm to Short Date
+    Worksheets("New").Activate
+
+    Columns("E").Select
+    Columns(5).NumberFormat = "mm/dd/yyy"
+    
+        'Turn to table
+        Range("A1").CurrentRegion.Select
+        
+        Dim tblNew As ListObject
+        Set tblNew = ActiveSheet.ListObjects.Add(xlSrcRange, Selection, xlYes)
+        tblNew.Name = "tbl_New"
+        tblNew.TableStyle = "TableStyleMedium1"
+        '*********
+        'Sort
+        Range("E1").Sort Key1:=Range("A1").CurrentRegion, Order1:=xlAscending, Header:=xlYes
+    '********
+    
+    
+    'Select Awards Sheet and Convert to table
+    Worksheets("Awards").Activate
+    
+    Columns("H").Select
+    Columns(8).Replace What:="CP*", Replacement:="GOTW"
+    Columns(8).Replace What:="*GOM", Replacement:="GOTM"
+    Columns(8).Replace What:="SP*", Replacement:="SPA"
+    
+        'Turn to table
+        Range("A1").CurrentRegion.Select
+        
+        Dim tblAwards As ListObject
+        Set tblAwards = ActiveSheet.ListObjects.Add(xlSrcRange, Selection, xlYes)
+        tblAwards.Name = "tbl_Awards"
+        tblAwards.TableStyle = "TableStyleMedium1"
+        '*********
+    '********
+    
+    
+    'Select Host Sheet and Convert to table
+    Worksheets("Host").Activate
+
+    
+        'Turn to table
+        Range("A1").CurrentRegion.Select
+        
+        Dim tblHost As ListObject
+        Set tblHost = ActiveSheet.ListObjects.Add(xlSrcRange, Selection, xlYes)
+        tblHost.Name = "tbl_Host"
+        tblHost.TableStyle = "TableStyleMedium1"
+        '*********
+    '********
+    
+    
+    'Select DM Sheet and Find and Replace PrizeCodes
+    Worksheets("DM").Activate
+    
+    Columns("E").Select
+    Columns(5).Replace What:="*11*", Replacement:="HD11"
+    Columns(5).Replace What:="*20*", Replacement:="HD20"
+    Columns(5).Replace What:="*30*", Replacement:="HD30"
+    Columns(5).Replace What:="*35*", Replacement:="HD35"
+    Columns(5).Replace What:="*40*", Replacement:="HD40"
+      
+        'Turn to table
+        Range("A1").CurrentRegion.Select
+        
+        Dim tblDM As ListObject
+        Set tblDM = ActiveSheet.ListObjects.Add(xlSrcRange, Selection, xlYes)
+        tblDM.Name = "tbl_DM"
+        tblDM.TableStyle = "TableStyleMedium1"
+        '*********
+    '*********
+    
+    
+    
+End Sub
+Sub Button3_Click()
+
+    'Start Pivot Tables for week
+    Dim DDate As Date
+    Dim pastDate As Date
+    Dim dateTitle As String
+    
+    DDate = Date - 1
+    pastDate = Date - 7
+    dateTitle = pastDate & " - " & DDate
+    
+    
+    Range("A10:B10").Merge
+    Range("A10:B10").Select
+    ActiveCell.FormulaR1C1 = dateTitle
+    ActiveCell.HorizontalAlignment = xlCenter
+    Range("A10:B10").Style = "Heading 3"
+
+
+    'Create New Players Pivot Table
+        'Create Cache and Set Pivot Table
+        ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+            ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_New"), _
+            Version:=6).CreatePivotTable TableDestination:="Control!R14C1", TableName _
+            :="PivotTable1", DefaultVersion:=6
+
+        Cells(14, 1).Select
+        
+        'Create Pivot Table
+        With ActiveSheet.PivotTables("PivotTable1").CubeFields( _
+            "[tbl_New].[ClubLevelName]")
+            .Orientation = xlRowField
+            .Position = 1
+        End With
+    
+        ActiveSheet.PivotTables("PivotTable1").CubeFields.GetMeasure _
+            "[tbl_New].[Acct]", xlSum, "Sum of Acct"
+        ActiveSheet.PivotTables("PivotTable1").AddDataField ActiveSheet.PivotTables( _
+            "PivotTable1").CubeFields("[Measures].[Sum of Acct]"), "Sum of Acct"
+        
+        With ActiveSheet.PivotTables("PivotTable1").CubeFields("[tbl_New].[Bet]")
+            .Orientation = xlPageField
+            .Position = 1
+        End With
+    
+        With ActiveSheet.PivotTables("PivotTable1").PivotFields( _
+            "[Measures].[Sum of Acct]")
+            .Caption = "Distinct Count of Acct"
+            .Function = xlDistinctCount
+        End With
+    '**********
+    
+    'Create NewMembers with eCash
+        Range("A19").Select
+        'Create Cache and Set Pivot Table
+        ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+            ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_Awards"), _
+            Version:=6).CreatePivotTable TableDestination:="Control!R19C1", TableName _
+            :="PivotTable2", DefaultVersion:=6
+    
+        Cells(19, 1).Select
+        
+        'Create Pivot Table
+        With ActiveSheet.PivotTables("PivotTable2").CubeFields( _
+            "[tbl_Awards].[PrizeCode]")
+            .Orientation = xlRowField
+            .Position = 1
+        End With
+        ActiveSheet.PivotTables("PivotTable2").PivotFields( _
+            "[tbl_Awards].[PrizeCode].[PrizeCode]").VisibleItemsList = Array( _
+            "[tbl_Awards].[PrizeCode].&[ENEWMEM]")
+            
+        ActiveSheet.PivotTables("PivotTable2").CubeFields.GetMeasure "[tbl_Awards].[Acct]", xlDistinctCount, "Distinct Count of Acct 2"
+            
+        ActiveSheet.PivotTables("PivotTable2").AddDataField ActiveSheet.PivotTables("PivotTable2").CubeFields("[Measures].[Distinct Count of Acct 2]"), "Distinct Count of Acct"
+            
+        With ActiveSheet.PivotTables("PivotTable2").PivotFields("[Measures].[Distinct Count of Acct 2]")
+            .Caption = "Distinct Count of Acct"
+            .Function = xlDistinctCount
+        End With
+    '*******************************
+    
+    'Create SPA, BOCA, GIFT SHOP Awards Used
+        ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+            ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_Awards"), _
+            Version:=6).CreatePivotTable TableDestination:="Control!R23C1", TableName _
+            :="PivotTable3", DefaultVersion:=6
+        
+        Cells(23, 1).Select
+    
+        With ActiveSheet.PivotTables("PivotTable3").CubeFields("[tbl_Awards].[PrizeCode]")
+            .Orientation = xlRowField
+            .Position = 1
+        End With
+        ActiveSheet.PivotTables("PivotTable3").PivotFields( _
+            "[tbl_Awards].[PrizeCode].[PrizeCode]").VisibleItemsList = Array( _
+            "[tbl_Awards].[PrizeCode].&[EXPRESS/C]", "[tbl_Awards].[PrizeCode].&[FOOD/C]", _
+            "[tbl_Awards].[PrizeCode].&[SPA]")
+        ActiveSheet.PivotTables("PivotTable3").CubeFields.GetMeasure _
+            "[tbl_Awards].[PrizeAwardUsed]", xlSum, "Sum of PrizeAwardUsed"
+        ActiveSheet.PivotTables("PivotTable3").AddDataField ActiveSheet.PivotTables( _
+            "PivotTable3").CubeFields("[Measures].[Sum of PrizeAwardUsed]"), _
+            "Sum of PrizeAwardUsed"
+    '*******************************
+    
+    'Create GOTW/GOTM PrizeQty and ADT Pivot
+        ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+            ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_Awards"), _
+            Version:=6).CreatePivotTable TableDestination:="Control!R31C1", TableName _
+            :="PivotTable4", DefaultVersion:=6
+            
+        Cells(31, 1).Select
+        
+        With ActiveSheet.PivotTables("PivotTable4").CubeFields("[tbl_Awards].[PrizeCode]")
+            .Orientation = xlRowField
+            .Position = 1
+        End With
+        
+        ActiveSheet.PivotTables("PivotTable4").PivotFields( _
+            "[tbl_Awards].[PrizeCode].[PrizeCode]").VisibleItemsList = Array( _
+            "[tbl_Awards].[PrizeCode].&[GOTM]", "[tbl_Awards].[PrizeCode].&[GOTW]")
+        ActiveSheet.PivotTables("PivotTable4").CubeFields.GetMeasure _
+            "[tbl_Awards].[PrizeQty]", xlSum, "Sum of PrizeQty"
+        ActiveSheet.PivotTables("PivotTable4").CubeFields.GetMeasure _
+            "[tbl_Awards].[AdjTheo]", xlAverage, "Average of AdjTheo"
+        ActiveSheet.PivotTables("PivotTable4").AddDataField ActiveSheet.PivotTables( _
+            "PivotTable4").CubeFields("[Measures].[Sum of PrizeQty]"), _
+            "Sum of PrizeQty"
+        ActiveSheet.PivotTables("PivotTable4").AddDataField ActiveSheet.PivotTables( _
+            "PivotTable4").CubeFields("[Measures].[Average of AdjTheo]"), _
+            "Average of AdjTheo"
+        
+    '*******************************
+    
+    'Create Points used at F&B Venues Pivot
+    ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+        ActiveWorkbook.Connections("ThisWorkbookDataModel"), Version:=6). _
+        CreatePivotTable TableDestination:="Control!R11C5", TableName:= _
+        "PivotTable5", DefaultVersion:=6
+    Cells(11, 5).Select
+    With ActiveSheet.PivotTables("PivotTable5").CubeFields( _
+        "[tbl_Awards].[PrizeCode]")
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+    ActiveSheet.PivotTables("PivotTable5").PivotFields( _
+        "[tbl_Awards].[PrizeCode].[PrizeCode]").VisibleItemsList = Array( _
+        "[tbl_Awards].[PrizeCode].&[RABAKERY]", "[tbl_Awards].[PrizeCode].&[RADEUCEDIN]" _
+        , "[tbl_Awards].[PrizeCode].&[RAFUEGO]", "[tbl_Awards].[PrizeCode].&[RAGOLDFIEL]" _
+        , "[tbl_Awards].[PrizeCode].&[RAMNTVIEW]", _
+        "[tbl_Awards].[PrizeCode].&[RANATIVOS]", _
+        "[tbl_Awards].[PrizeCode].&[RANOODLEBA]", _
+        "[tbl_Awards].[PrizeCode].&[RAVINTAGE]")
+    ActiveSheet.PivotTables("PivotTable5").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable5").CubeFields("[Measures].[Sum of PrizeAwardUsed]"), _
+        "Sum of PrizeAwardUsed"
+    ActiveSheet.PivotTables("PivotTable5").CubeFields.GetMeasure _
+        "[tbl_Awards].[Acct]", xlSum, "Sum of Acct 2"
+    ActiveSheet.PivotTables("PivotTable5").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable5").CubeFields("[Measures].[Sum of Acct 2]"), "Sum of Acct"
+    With ActiveSheet.PivotTables("PivotTable5").PivotFields( _
+        "[Measures].[Sum of Acct 2]")
+        .Caption = "Distinct Count of Acct"
+        .Function = xlDistinctCount
+    End With
+    ActiveSheet.PivotTables("PivotTable5").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable5").CubeFields("[Measures].[Sum of PrizeQty]"), "Sum of PrizeQty"
+    ActiveSheet.PivotTables("PivotTable5").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable5").CubeFields("[Measures].[Sum of AdjTheo]"), "Sum of AdjTheo"
+    Range("J12").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RABAKERY]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RABAKERY]"")"
+    Range("J13").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RADEUCEDIN]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RADEUCEDIN]"")"
+    Range("J14").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAFUEGO]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAFUEGO]"")"
+    Range("J15").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAGOLDFIEL]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAGOLDFIEL]"")"
+    Range("J16").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAMNTVIEW]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAMNTVIEW]"")"
+    Range("J17").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RANATIVOS]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RANATIVOS]"")"
+    Range("J18").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RANOODLEBA]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RANOODLEBA]"")"
+    Range("J19").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAVINTAGE]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty]"",R11C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[RAVINTAGE]"")"
+    Range("J20").Select
+    
+    Range("J11").Select
+    ActiveCell.FormulaR1C1 = "ADT"
+    '*******************************
+    
+    'Create Host Hotel Block Pivot
+    
+    ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+        ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_Host"), _
+        Version:=6).CreatePivotTable TableDestination:="Control!R22C5", TableName _
+        :="PivotTable6", DefaultVersion:=6
+    Cells(22, 5).Select
+    With ActiveSheet.PivotTables("PivotTable6").CubeFields("[tbl_Host].[PrizeCode]" _
+        )
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+    ActiveSheet.PivotTables("PivotTable6").CubeFields.GetMeasure _
+        "[tbl_Host].[Acct]", xlSum, "Sum of Acct 3"
+    ActiveSheet.PivotTables("PivotTable6").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable6").CubeFields("[Measures].[Sum of Acct 3]"), "Sum of Acct"
+    With ActiveSheet.PivotTables("PivotTable6").PivotFields( _
+        "[Measures].[Sum of Acct 3]")
+        .Caption = "Distinct Count of Acct"
+        .Function = xlDistinctCount
+    End With
+    ActiveSheet.PivotTables("PivotTable6").CubeFields.GetMeasure _
+        "[tbl_Host].[PrizeQty]", xlSum, "Sum of PrizeQty 2"
+    ActiveSheet.PivotTables("PivotTable6").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable6").CubeFields("[Measures].[Sum of PrizeQty 2]"), "Sum of PrizeQty"
+    ActiveSheet.PivotTables("PivotTable6").CubeFields.GetMeasure _
+        "[tbl_Host].[ActionDays]", xlSum, "Sum of ActionDays"
+    ActiveSheet.PivotTables("PivotTable6").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable6").CubeFields("[Measures].[Sum of ActionDays]"), _
+        "Sum of ActionDays"
+    ActiveSheet.PivotTables("PivotTable6").CubeFields.GetMeasure _
+        "[tbl_Host].[AdjTheo]", xlSum, "Sum of AdjTheo 2"
+    ActiveSheet.PivotTables("PivotTable6").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable6").CubeFields("[Measures].[Sum of AdjTheo 2]"), "Sum of AdjTheo"
+
+    Range("J23").Select
+
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo 2]"",R22C5,""[tbl_Host].[PrizeCode]"",""[tbl_Host].[PrizeCode].&[HOTELSETTL]"")/GETPIVOTDATA(""[Measures].[Sum of PrizeQty 2]"",R22C5,""[tbl_Host].[PrizeCode]"",""[tbl_Host].[PrizeCode].&[HOTELSETTL]"")"
+    Range("J22").Select
+    ActiveCell.FormulaR1C1 = "ADT"
+    
+    '*******************************
+    
+    'Create Summit Suite Pivot
+    
+    ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+        ActiveWorkbook.Connections("ThisWorkbookDataModel"), Version:=6). _
+        CreatePivotTable TableDestination:="Control!R27C5", TableName:= _
+        "PivotTable7", DefaultVersion:=6
+    Cells(27, 5).Select
+    With ActiveSheet.PivotTables("PivotTable7").CubeFields( _
+        "[tbl_Awards].[PrizeCode]")
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+    ActiveSheet.PivotTables("PivotTable7").PivotFields( _
+        "[tbl_Awards].[PrizeCode].[PrizeCode]").VisibleItemsList = Array( _
+        "[tbl_Awards].[PrizeCode].&[SMTROOM]")
+    ActiveSheet.PivotTables("PivotTable7").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable7").CubeFields("[Measures].[Sum of Acct 2]"), "Sum of Acct"
+    With ActiveSheet.PivotTables("PivotTable7").PivotFields( _
+        "[Measures].[Sum of Acct 2]")
+        .Caption = "Distinct Count of Acct"
+        .Function = xlDistinctCount
+    End With
+    ActiveSheet.PivotTables("PivotTable7").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable7").CubeFields("[Measures].[Sum of AdjTheo]"), "Sum of AdjTheo"
+    With ActiveSheet.PivotTables("PivotTable7").CubeFields("[tbl_Awards].[Bet]")
+        .Orientation = xlPageField
+        .Position = 1
+    End With
+    Range("F28").Select
+    Selection.Copy
+    Range("F26").Select
+    ActiveSheet.Paste
+    ActiveSheet.PivotTables("PivotTable7").CubeFields(14).EnableMultiplePageItems _
+        = True
+    ActiveSheet.PivotTables("PivotTable7").PivotFields("[tbl_Awards].[Bet].[Bet]") _
+        .VisibleItemsList = Array("[tbl_Awards].[Bet].&[0]")
+    Range("F28").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    Range("G26").Select
+    ActiveSheet.Paste
+    Range("H26").Select
+    Application.CutCopyMode = False
+    ActiveCell.FormulaR1C1 = "=RC[-2]-RC[-1]"
+    Range("H27").Select
+    ActiveSheet.PivotTables("PivotTable7").PivotFields("[tbl_Awards].[Bet].[Bet]") _
+        .VisibleItemsList = Array("")
+    Range("H28").Select
+    ActiveCell.FormulaR1C1 = _
+        "=GETPIVOTDATA(""[Measures].[Sum of AdjTheo]"",R27C5,""[tbl_Awards].[PrizeCode]"",""[tbl_Awards].[PrizeCode].&[SMTROOM]"")/R[-2]C"
+    Range("H27").Select
+    ActiveCell.FormulaR1C1 = "ADT"
+    Range("I27").Select
+    
+    '*******************************
+    
+    'Create DM Hotel Pivot
+    
+    ActiveWorkbook.PivotCaches.Create(SourceType:=xlExternal, SourceData:= _
+        ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_DM"), Version _
+        :=6).CreatePivotTable TableDestination:="Control!R31C5", TableName:= _
+        "PivotTable8", DefaultVersion:=6
+    Cells(31, 5).Select
+    With ActiveSheet.PivotTables("PivotTable8").CubeFields("[tbl_DM].[PrizeCode]")
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+    ActiveSheet.PivotTables("PivotTable8").CubeFields.GetMeasure "[tbl_DM].[Acct]" _
+        , xlSum, "Sum of Acct 4"
+    ActiveSheet.PivotTables("PivotTable8").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable8").CubeFields("[Measures].[Sum of Acct 4]"), "Sum of Acct"
+    With ActiveSheet.PivotTables("PivotTable8").PivotFields( _
+        "[Measures].[Sum of Acct 4]")
+        .Caption = "Distinct Count of Acct"
+        .Function = xlDistinctCount
+    End With
+    ActiveSheet.PivotTables("PivotTable8").CubeFields.GetMeasure _
+        "[tbl_DM].[PrizeQty]", xlSum, "Sum of PrizeQty 3"
+    ActiveSheet.PivotTables("PivotTable8").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable8").CubeFields("[Measures].[Sum of PrizeQty 3]"), "Sum of PrizeQty"
+    ActiveSheet.PivotTables("PivotTable8").CubeFields.GetMeasure _
+        "[tbl_DM].[AdjTheo]", xlSum, "Sum of AdjTheo 3"
+    ActiveSheet.PivotTables("PivotTable8").AddDataField ActiveSheet.PivotTables( _
+        "PivotTable8").CubeFields("[Measures].[Sum of AdjTheo 3]"), "Sum of AdjTheo"
+    With ActiveSheet.PivotTables("PivotTable8").PivotFields( _
+        "[Measures].[Sum of AdjTheo 3]")
+        .Caption = "Average of AdjTheo"
+        .Function = xlAverage
+    End With
+    
+    '*******************************
+
+End Sub
+Sub Button4_Click()
+    'tbl_New************************
+    'Add New Players Table to Data Model
+    Workbooks("Testing.xlsm").Connections.Add2 _
+        "WorksheetConnection_Testing.xlsm!tbl_New", "", _
+        "WORKSHEET;C:\Users\enaughton\Desktop\Testing.xlsm", "Testing.xlsm!tbl_New" _
+        , 7, True, False
+
+    'tbl_Awards*********************
+    'Add Awards Table to Data Model
+    Workbooks("Testing.xlsm").Connections.Add2 _
+        "WorksheetConnection_Testing.xlsm!tbl_Awards", "", _
+        "WORKSHEET;C:\Users\enaughton\Desktop\Testing.xlsm", "Testing.xlsm!tbl_Awards" _
+        , 7, True, False
+        
+        
+    'tbl_Host***********************
+    'Add Host Table to Data Model
+    Workbooks("Testing.xlsm").Connections.Add2 _
+        "WorksheetConnection_Testing.xlsm!tbl_Host", "", _
+        "WORKSHEET;C:\Users\enaughton\Desktop\Testing.xlsm", "Testing.xlsm!tbl_Host" _
+        , 7, True, False
+        
+        
+    'tbl_DM***********************
+    'Add DM Table to Data Model
+    Workbooks("Testing.xlsm").Connections.Add2 _
+        "WorksheetConnection_Testing.xlsm!tbl_DM", "", _
+        "WORKSHEET;C:\Users\enaughton\Desktop\Testing.xlsm", "Testing.xlsm!tbl_DM" _
+        , 7, True, False
+    
+        
+    '**************************************
+End Sub
+
+Sub Button5_Click()
+
+    Dim DDate As Date
+    Dim MonthNum As Integer
+    Dim MonthDay As Integer
+    
+    
+    DDate = Date
+    MonthNum = Month(DDate)
+    MonthDay = Day(DDate)
+    
+
+    Sheets.Add(After:=Sheets("DM")).Name = "Pivot" & MonthNum & MonthDay
+    
+    Range("A39").Select
+    ActiveCell.FormulaR1C1 = "ENDDATA"
+
+    Worksheets("Control").Range("A10:K39").Copy
+    Worksheets("Pivot" & MonthNum & MonthDay).Range("A1").PasteSpecial Paste:=xlPasteColumnWidths
+    Worksheets("Pivot" & MonthNum & MonthDay).Range("A1").PasteSpecial Paste:=xlPasteValues
+    
+    Worksheets("Pivot" & MonthNum & MonthDay).Visible = False
+    Worksheets("Control").Range("A10:K39").Clear
+    
+    ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_New").Delete
+    ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_Awards").Delete
+    ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_Host").Delete
+    ActiveWorkbook.Connections("WorksheetConnection_Testing.xlsm!tbl_DM").Delete
+
+End Sub
